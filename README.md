@@ -34,7 +34,7 @@ The wavelet decomposition (i.e., DWT) is fixed (not learned) and perfectly inver
 
 Standard VQ-VAE loss applied per subband with EMA codebook updates:
 
-$$L = \lVert x - x' \rVert^2 + \frac{\beta}{7} \cdot \Sigma_{i} \cdot \lVert z_i - \text{sg}[\hat{z}_i] \rVert^2$$
+$$L = \lVert x - x' \rVert^2 + \frac{\beta}{7} \cdot \Sigma_{i} \lVert z_i - \text{sg}[\hat{z}_i] \rVert^2$$
 
 where $\beta = 0.25$ and sg is the stop-gradient operator. Both models trained for 200 epochs with Adam (lr=3e-4). The precise mathematical formulation is shown below.
 
