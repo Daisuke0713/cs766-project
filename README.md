@@ -21,7 +21,7 @@ I decompose images with a *2-level Haar wavelet transform* before quantization. 
 
 The wavelet decomposition (i.e., DWT) is fixed (not learned) and perfectly invertible (through inverse DWT). Hence, *no information is lost*. After decoding each subband, the inverse DWT reconstructs the full image.
 
-![Wavelet Subbands](./wavelet_subbands.png)
+![Wavelet Subbands](./images/wavelet_subbands.png)
 *2-level Haar wavelet decomposition of a CIFAR-10 image. LL2 contains most of the image energy; HH subbands are sparse.*
 
 ### Pipeline
@@ -38,7 +38,7 @@ $$L = \lVert x - x' \rVert^2 + \frac{\beta}{7} \cdot \Sigma_{i} \lVert z_i - \te
 
 where $\beta = 0.25$ and sg is the stop-gradient operator. Both models trained for 200 epochs with Adam (lr=3e-4). The precise mathematical formulation is shown below.
 
-![Math Details](./math_cs766.png)
+![Math Details](./images/math_cs766.png)
 *Precise mathematical derivations of WVQ.*
 
 ## Results
@@ -60,12 +60,12 @@ WVQ beats VQ-VAE by 4-6 dB PSNR consistently across all three datasets, at the s
 
 ### Reconstructions (STL-10)
 
-![Reconstructions STL-10](./reconstructions_stl10.png)
+![Reconstructions STL-10](./images/reconstructions_stl10.png)
 *Top: originals. Middle: VQ-VAE. Bottom: WVQ. VQ-VAE outputs are noticeably blurry; WVQ preserves edges and textures.*
 
 ### Reconstructions (CIFAR-10)
 
-![Reconstructions CIFAR-10](./reconstructions_cifar10.png)
+![Reconstructions CIFAR-10](./images/reconstructions_cifar10.png)
 
 ### Codebook reallocation ablation
 
@@ -97,6 +97,22 @@ The reallocation improved PSNR by 0.6 dB, validating the central idea: codebook 
 **What I learned.** I originally proposed steerable pyramid decompositions with group-equivariant codebook sharing. This turned out to be too complex (Fourier-domain rotation, complex subbands, many hyperparameters) without clear benefits at CIFAR-10 resolution. Narrowing to Haar wavelets made the project tractable and the results clearer. Lesson: start with the simplest decomposition that captures the structure you care about.
 
 **Future directions.** Learned wavelets (e.g., lifting scheme) instead of fixed Haar. Scaling to larger images and higher bitrates. Pairing WVQ tokens with an autoregressive transformer prior for a full generative model.
+
+## Implementation and Code
+
+## Implementation and Code
+
+All code is in this repository. To reproduce:
+
+    bash ./src/run.sh 200 0    # runs all experiments, 200 epochs, gpu 0
+
+Or run individually with ```cd src```:
+
+    python train.py --model vqvae --output out/vqvae --dataset cifar10 --epochs 200
+    python train.py --model wvq   --output out/wvq   --dataset cifar10 --epochs 200
+    python evaluate.py --vqvae-dir out/vqvae --wvq-dir out/wvq --output report/
+
+Supports `--dataset {cifar10, cifar100, stl10}` and `--image-size 64` for STL-10. See `run.sh` for full experiment configs.
 
 ## References
 
