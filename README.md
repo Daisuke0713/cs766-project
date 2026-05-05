@@ -1,18 +1,15 @@
-# WVQ: Wavelet Vector Quantization for Image Compression
-
-**Daisuke Yamada (dyamada2@wisc.edu) — CS 766, Spring 2026**
+# WVQ: Wavelet Vector Quantization for Image Compression 
+by Daisuke Yamada (dyamada2@wisc.edu) — CS 766, Spring 2026
 
 ## Motivation
 
-VQ-VAE compresses images by mapping continuous latent features to discrete codebook entries. It's the backbone behind generative models like DALL-E, Parti, and VQ-GAN. The key trade-off is codebook size vs. reconstruction quality — larger codebooks improve fidelity but cost more memory.
+VQ-VAE compresses images by mapping continuous latent features to discrete codebook entries. It's the backbone behind generative models like DALL-E, Parti, and VQ-GAN. The key trade-off is codebook size vs. reconstruction quality, i.e., larger codebooks improve fidelity but cost more memory. Standard VQ-VAE treats all latent features uniformly and does not exploit the known structure of natural images. But from classical signal processing, we know most image energy is concentrated in low frequencies, while edges and textures are sparse. In this project, I ask: 
 
-Standard VQ-VAE treats all latent features the same, ignoring the known structure of natural images. But from classical signal processing, we know most image energy is concentrated in low frequencies, while edges and textures are sparse. This project asks: can we exploit this structure to build a better VQ-VAE?
+> *Can we exploit the spatial resolution structure of natural images to build a better VQ-VAE?*
 
-## Approach
+## My Approach
 
-I decompose images with a 2-level Haar wavelet transform before quantization. This splits the image into 7 subbands — one lowpass (LL2) carrying coarse structure, and six detail subbands capturing edges at different scales and orientations (LH, HL, HH at two levels).
-
-Each subband gets its own encoder, codebook, and decoder. Codebook sizes are allocated based on expected information content:
+I decompose images with a *2-level Haar wavelet transform* before quantization. This splits the image into 7 subbands — one lowpass (LL2) carrying coarse structure, and six detail subbands capturing edges at different scales and orientations (LH, HL, HH at two levels). Each subband gets its own encoder, codebook, and decoder. Codebook sizes are allocated based on expected information content:
 
 | Subband | Content | Codebook K |
 |---------|---------|-----------|
@@ -22,14 +19,14 @@ Each subband gets its own encoder, codebook, and decoder. Codebook sizes are all
 | HH1 | Fine diagonal/noise | 64 |
 | HH2 | Coarse diagonal/noise | 32 |
 
-The wavelet decomposition is fixed (not learned) and perfectly invertible — no information is lost. After decoding each subband, the inverse DWT reconstructs the full image.
+The wavelet decomposition (i.e., DWT) is fixed (not learned) and perfectly invertible (through inverse DWT). Hence, *no information is lost*. After decoding each subband, the inverse DWT reconstructs the full image.
 
-![Wavelet Subbands](images/wavelet_subbands.png)
+![Wavelet Subbands](./wavelet_subbands.png)
 *2-level Haar wavelet decomposition of a CIFAR-10 image. LL2 contains most of the image energy; HH subbands are sparse.*
 
 ### Pipeline
 
-1. Image x → 2-level Haar DWT → 7 subbands
+1. Image $x$ → 2-level Haar DWT → 7 subbands
 2. For each subband: encode → quantize with own codebook → decode
 3. Inverse DWT of decoded subbands → reconstructed image
 
@@ -37,9 +34,12 @@ The wavelet decomposition is fixed (not learned) and perfectly invertible — no
 
 Standard VQ-VAE loss applied per subband with EMA codebook updates:
 
-L = ||x - x'||^2 + (1/7) * sum_i beta * ||z_i - sg[z_hat_i]||^2
+$$L = \lVert x - x' \rVert^2 + \frac{\beta}{7} \cdot \Sigma_{i} \cdot \lVert z_i - \text{sg}[\hat{z}_i] \rVert^2$$
 
-where beta = 0.25 and sg is the stop-gradient operator. Both models trained for 200 epochs with Adam (lr=3e-4).
+where $\beta = 0.25$ and sg is the stop-gradient operator. Both models trained for 200 epochs with Adam (lr=3e-4). The precise mathematical formulation is shown below.
+
+![Math Details](./math_cs766.png)
+*Precise mathematical derivations of WVQ.*
 
 ## Results
 
@@ -60,16 +60,12 @@ WVQ beats VQ-VAE by 4-6 dB PSNR consistently across all three datasets, at the s
 
 ### Reconstructions (STL-10)
 
-![Reconstructions STL-10](images/reconstructions_stl10.png)
+![Reconstructions STL-10](./reconstructions_stl10.png)
 *Top: originals. Middle: VQ-VAE. Bottom: WVQ. VQ-VAE outputs are noticeably blurry; WVQ preserves edges and textures.*
 
 ### Reconstructions (CIFAR-10)
 
-![Reconstructions CIFAR-10](images/reconstructions_cifar10.png)
-
-### Loss curves (CIFAR-10, param-equalized)
-
-![Loss Curves](images/loss_curves.png)
+![Reconstructions CIFAR-10](./reconstructions_cifar10.png)
 
 ### Codebook reallocation ablation
 
@@ -101,21 +97,6 @@ The reallocation improved PSNR by 0.6 dB, validating the central idea: codebook 
 **What I learned.** I originally proposed steerable pyramid decompositions with group-equivariant codebook sharing. This turned out to be too complex (Fourier-domain rotation, complex subbands, many hyperparameters) without clear benefits at CIFAR-10 resolution. Narrowing to Haar wavelets made the project tractable and the results clearer. Lesson: start with the simplest decomposition that captures the structure you care about.
 
 **Future directions.** Learned wavelets (e.g., lifting scheme) instead of fixed Haar. Scaling to larger images and higher bitrates. Pairing WVQ tokens with an autoregressive transformer prior for a full generative model.
-
-## Code
-
-Source code is available in this repository. To reproduce:
-
-```
-# train both models on CIFAR-10
-python train.py --model vqvae --output out/vqvae --epochs 200 --hidden 160
-python train.py --model wvq   --output out/wvq   --epochs 200
-
-# generate report
-python evaluate.py --vqvae-dir out/vqvae --wvq-dir out/wvq --output report/
-```
-
-See `run.sh` for the full set of experiments.
 
 ## References
 
