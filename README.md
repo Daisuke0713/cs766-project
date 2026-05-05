@@ -100,8 +100,6 @@ The reallocation improved PSNR by 0.6 dB, validating the central idea: codebook 
 
 ## Implementation and Code
 
-## Implementation and Code
-
 All code is in this repository. To reproduce:
 
     bash ./src/run.sh 200 0    # runs all experiments, 200 epochs, gpu 0
